@@ -91,7 +91,59 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Return Book
+// router.post("/return", async (req, res) => {
+//   const { user_id, book_id } = req.body;
 
+//   await pool.query("UPDATE books SET quantity = quantity + 1 WHERE id = $1", [book_id]);
+//   await pool.query("DELETE FROM borrowed_books WHERE user_id = $1 AND book_id = $2", [user_id, book_id]);
+
+//   res.json({ message: "Book returned successfully" });
+// });
+
+router.post("/return", async (req, res) => {
+  const { user_id, book_id } = req.body;
+
+  // Validate required inputs
+  if (!user_id || !book_id) {
+    return res.status(400).json({ error: "Missing user_id or book_id" });
+  }
+
+  try {
+    // Start transaction
+    await pool.query("BEGIN");
+
+    // Fetch current quantity and total quantity from books table
+    const bookData = await pool.query(
+      "SELECT quantity, total_quantity FROM books WHERE id = $1",
+      [book_id]
+    );
+
+    if (bookData.rowCount === 0) {
+      await pool.query("ROLLBACK");
+      return res.status(404).json({ error: "Book not found" });
+    }
+
+    const { quantity, total_quantity } = bookData.rows[0];
+
+    // Check if the user actually borrowed the book
+    const borrowedBook = await pool.query(
+      "SELECT * FROM borrowed_books WHERE user_id = $1 AND book_id = $2",
+      [user_id, book_id]
+    );
+
+    if (borrowedBook.rowCount === 0) {
+      await pool.query("ROLLBACK");
+      return res.status(400).json({ error: "No borrowed record found for this user" });
+    }
+
+    // Update book quantity only if it does not exceed the total quantity
+    if (quantity < total_quantity) {
+      await pool.query(
+        "UPDATE books SET quantity = quantity + 1 WHERE id = $1",
+        [book_id]
+      );
+    }
 
 
 export default router;
