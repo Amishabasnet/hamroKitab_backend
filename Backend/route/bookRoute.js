@@ -144,6 +144,25 @@ router.post("/return", async (req, res) => {
         [book_id]
       );
     }
+    // Remove the borrowed record
+    await pool.query(
+      "DELETE FROM borrowed_books WHERE user_id = $1 AND book_id = $2",
+      [user_id, book_id]
+    );
 
+    // After returning the book, you should not insert it back into the borrowed_books table
+    // So remove this part of the code that is trying to insert again
+
+    // Commit transaction
+    await pool.query("COMMIT");
+
+    res.json({ message: "Book returned successfully" });
+  } catch (error) {
+    // Rollback on error
+    console.error("Error returning book:", error.stack);
+    await pool.query("ROLLBACK");
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 export default router;
