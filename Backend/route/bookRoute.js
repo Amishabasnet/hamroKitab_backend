@@ -165,4 +165,33 @@ router.post("/return", async (req, res) => {
   }
 });
 
+// In your bookRoute.js or similar backend file
+
+// Get Borrowed Books for Profile Page
+router.get("/profile/borrowed-books", authenticateJWT, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      "SELECT books.* FROM books JOIN borrowed_books ON books.id = borrowed_books.book_id WHERE borrowed_books.user_id = $1",
+      [userId]
+    );
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Get all borrowed books
+router.get('/allborrowdata', async (req, res) => {
+  try {
+      const result = await pool.query('SELECT * FROM borrowed_books');
+      res.status(200).json(result.rows);
+  } catch (err) {
+      console.error('Error fetching borrowed books:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 export default router;
