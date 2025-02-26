@@ -49,7 +49,29 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Update Book
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, isbn, author, quantity, description, category_id } = req.body;
 
+    const result = await pool.query(
+      `UPDATE books 
+       SET name = $1, isbn = $2, author = $3, "quantity" = $4, description = $5, category_id = $6 
+       WHERE id = $7 RETURNING *`,
+      [name, isbn, author, quantity, description, category_id, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 
